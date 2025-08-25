@@ -1,43 +1,397 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Study Calendar & To-Do App</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Smart Study Planner</title>
+  <style>
+    :root{
+      --bg:#0f172a;           /* slate-900 */
+      --panel:#111827;        /* gray-900 */
+      --muted:#1f2937;        /* gray-800 */
+      --card:#0b1220;         /* dark card */
+      --text:#e5e7eb;         /* gray-200 */
+      --sub:#94a3b8;          /* slate-400 */
+      --accent:#22c55e;       /* green-500 */
+      --accent-2:#3b82f6;     /* blue-500 */
+      --danger:#ef4444;       /* red-500 */
+      --warn:#f59e0b;         /* amber-500 */
+      --shadow: 0 10px 25px rgba(0,0,0,.35);
+      --radius: 18px;
+    }
+    *{ box-sizing: border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      color:var(--text);
+      background: radial-gradient(1200px 600px at 10% -10%, #1f2937 0%, transparent 60%),
+                  radial-gradient(900px 600px at 110% 10%, #0b1220 0%, transparent 60%),
+                  var(--bg);
+    }
+    header{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:20px clamp(16px, 4vw, 36px);
+    }
+    header h1{ font-size: clamp(20px, 2.2vw, 32px); margin:0; letter-spacing:.3px; }
+    header .date{
+      color:var(--sub); font-weight:600; letter-spacing:.3px;
+    }
+    .container{
+      display:grid; gap:18px; padding:0 clamp(16px, 4vw, 36px) 36px;
+      grid-template-columns: 320px 1fr 360px;
+    }
+    @media (max-width: 1100px){ .container{ grid-template-columns: 1fr; } }
+
+    .card{ background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01)), var(--panel); border:1px solid rgba(148,163,184,.12); border-radius: var(--radius); box-shadow: var(--shadow); }
+    .card h2{ margin:0 0 12px; font-size:18px; letter-spacing:.2px; }
+
+    /* Left: Add Task */
+    .add-task{ padding:18px; position:sticky; top:12px; }
+    .field{ display:flex; flex-direction:column; gap:6px; margin:10px 0; }
+    .field label{ font-size:13px; color:var(--sub); }
+    input[type="text"], input[type="date"], textarea{
+      background:var(--card); color:var(--text);
+      border:1px solid rgba(148,163,184,.18);
+      border-radius:14px; padding:12px 14px; outline:none; width:100%;
+    }
+    textarea{ resize:vertical; min-height:70px; }
+    .row{ display:flex; gap:8px; flex-wrap:wrap; }
+    .btn{ cursor:pointer; user-select:none; border:none; padding:10px 14px; border-radius:12px; font-weight:600; letter-spacing:.2px; background:var(--muted); color:var(--text); transition:.2s transform, .2s filter; }
+    .btn:hover{ filter:brightness(1.08); transform: translateY(-1px); }
+    .btn:active{ transform: translateY(0); }
+    .btn.primary{ background: var(--accent-2); }
+    .btn.success{ background: var(--accent); color:#072b16; }
+    .btn.warning{ background: var(--warn); color:#2b1a00; }
+    .btn.danger{ background: var(--danger); }
+    .tag{ font-size:12px; padding:6px 10px; border-radius:999px; background:rgba(59,130,246,.15); border:1px solid rgba(59,130,246,.35); color:#cfe3ff; }
+
+    /* Calendar */
+    .calendar{ padding:18px; }
+    .cal-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+    .cal-grid{ display:grid; grid-template-columns: repeat(7, 1fr); gap:8px; }
+    .dow{ text-align:center; font-size:12px; color:var(--sub); padding-bottom:6px; }
+    .day{
+      background: var(--card); border:1px solid rgba(148,163,184,.1); border-radius:14px; min-height:92px; padding:8px; display:flex; flex-direction:column; gap:6px; position:relative; cursor:pointer; transition:.15s border-color, .15s transform;
+    }
+    .day:hover{ border-color: rgba(148,163,184,.28); transform: translateY(-1px); }
+    .day .num{ font-weight:700; font-size:14px; color:var(--sub); }
+    .day.today{ outline:2px dashed rgba(59,130,246,.65); outline-offset:3px; }
+    .day .chips{ display:flex; gap:6px; flex-wrap:wrap; margin-top:auto; }
+    .chip{ font-size:10px; padding:4px 6px; border-radius:999px; border:1px solid rgba(148,163,184,.25); background:rgba(148,163,184,.08); color:var(--sub); }
+    .chip.ok{ border-color: rgba(34,197,94,.55); background:rgba(34,197,94,.15); color:#bff3ce; }
+    .chip.pending{ border-color: rgba(245,158,11,.55); background:rgba(245,158,11,.14); color:#ffe0b0; }
+    .day.selected{ box-shadow: inset 0 0 0 2px var(--accent-2); }
+
+    /* Right: Task list */
+    .tasks{ padding:18px; position:sticky; top:12px; }
+    .tasks h2 span{ color:var(--sub); font-weight:600; font-size:13px; margin-left:8px; }
+    .list{ display:flex; flex-direction:column; gap:10px; }
+    .task{
+      display:flex; align-items:center; gap:10px; background: var(--card); border-radius:14px; padding:10px 12px; border:1px solid rgba(148,163,184,.14);
+    }
+    .task.completed{ opacity:.6; filter:saturate(.7); }
+    .task input[type="checkbox"]{ transform: scale(1.2); }
+    .task .title{ font-weight:600; }
+    .task .meta{ font-size:12px; color:var(--sub); }
+    .spacer{ flex:1; }
+    .empty{ color:var(--sub); text-align:center; padding:18px; border:1px dashed rgba(148,163,184,.25); border-radius:12px; background: rgba(148,163,184,.05); }
+
+    .footer-actions{ display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+
+    /* Tiny helper */
+    .kbd{ font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace; background: #0e1728; border:1px solid rgba(148,163,184,.2); border-bottom-width:3px; padding:2px 6px; border-radius:6px; font-size:12px; color:#cfe3ff; }
+  </style>
 </head>
 <body>
+  <header>
+    <h1>📚 Smart Study Planner</h1>
+    <div class="date" id="headerDate"></div>
+  </header>
+
   <div class="container">
-    <header>
-      <h1>Study Planner Calendar</h1>
-    </header>
-    <main>
-      <section class="calendar-section">
-        <div id="calendar"></div>
-      </section>
-      <section class="todo-section">
-        <h2 id="todo-date"></h2>
-        <form id="todo-form">
-          <input type="text" id="todo-input" placeholder="Add a new task..." required>
-          <button type="submit">Add</button>
-        </form>
-        <ul id="todo-list"></ul>
-        <div id="pending-tasks"></div>
-        <div id="move-task-modal" class="modal">
-          <div class="modal-content">
-            <span class="close" id="close-modal">&times;</span>
-            <h3>Move Task to Another Day</h3>
-            <label for="move-date">Select Date:</label>
-            <input type="date" id="move-date">
-            <button id="move-task-btn">Move</button>
-          </div>
+    <!-- Left: Add Task / Controls -->
+    <section class="card add-task">
+      <h2>Plan a Task</h2>
+      <div class="field">
+        <label for="title">Title</label>
+        <input id="title" type="text" placeholder="e.g., Take German class" />
+      </div>
+      <div class="field">
+        <label for="notes">Notes (optional)</label>
+        <textarea id="notes" placeholder="Quick details…"></textarea>
+      </div>
+      <div class="field">
+        <label for="date">Date</label>
+        <div class="row">
+          <input id="date" type="date" />
+          <button class="btn" id="todayBtn">Today</button>
+          <button class="btn" id="tomorrowBtn">Tomorrow</button>
         </div>
-      </section>
-    </main>
-    <footer>
-      <p>Made with &hearts; for study planning</p>
-    </footer>
+      </div>
+      <div class="row">
+        <button class="btn primary" id="addBtn">Add to Calendar</button>
+        <button class="btn" id="clearFormBtn" title="Reset the form">Clear</button>
+      </div>
+      <hr style="border:none; border-top:1px solid rgba(148,163,184,.15); margin:16px 0;">
+      <div class="row">
+        <span class="tag">Auto‑reschedule pending ➜ next day</span>
+      </div>
+      <div class="footer-actions" style="margin-top:14px">
+        <button class="btn success" id="rolloverBtn" title="Move any unfinished tasks from the last open date up to today">Sync Pending ➜ Today</button>
+        <button class="btn warning" id="reschedSelectedBtn" title="Move selected day\'s pending tasks to tomorrow">Reschedule Selected Day ➜ Tomorrow</button>
+        <button class="btn" id="deleteCompletedBtn">Delete Completed</button>
+      </div>
+      <p style="color:var(--sub); font-size:12px; margin-top:8px">Tip: Quickly check off tasks with <span class="kbd">Space</span> when focused.</p>
+    </section>
+
+    <!-- Middle: Calendar -->
+    <section class="card calendar">
+      <div class="cal-header">
+        <div class="row">
+          <button class="btn" id="prevMonth">◀</button>
+          <button class="btn" id="thisMonth">This Month</button>
+          <button class="btn" id="nextMonth">▶</button>
+        </div>
+        <div id="monthLabel" style="font-weight:800; letter-spacing:.3px"></div>
+      </div>
+      <div class="cal-grid" id="dow"></div>
+      <div class="cal-grid" id="calendar"></div>
+    </section>
+
+    <!-- Right: Tasks for selected day -->
+    <section class="card tasks">
+      <h2 id="tasksTitle">Tasks <span id="tasksMeta"></span></h2>
+      <div class="list" id="taskList"></div>
+      <div class="empty" id="emptyState" style="display:none">Nothing here (yet). Add something on the left ✨</div>
+    </section>
   </div>
-  <script src="script.js"></script>
+
+  <script>
+    /********************* Utilities ************************/
+    const pad = n => String(n).padStart(2,'0');
+    const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    const parseISO = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); };
+    const todayISO = () => fmt(new Date());
+    const tomorrowISO = (iso) => { const d = iso? parseISO(iso): new Date(); d.setDate(d.getDate()+1); return fmt(d); };
+
+    const storage = {
+      get(){ try{ return JSON.parse(localStorage.getItem('ssp-data')) || { tasks:[], lastOpen:todayISO() }; }catch{ return { tasks:[], lastOpen:todayISO() }; } },
+      set(data){ localStorage.setItem('ssp-data', JSON.stringify(data)); }
+    };
+
+    const state = {
+      viewDate: new Date(),          // month being viewed
+      selectedISO: todayISO(),       // day selected in calendar
+      get data(){ return storage.get(); },
+      set data(v){ storage.set(v); renderAll(); }
+    };
+
+    function upsertTask(task){
+      const data = state.data;
+      const idx = data.tasks.findIndex(t => t.id === task.id);
+      if(idx>=0) data.tasks[idx] = task; else data.tasks.push(task);
+      state.data = data;
+    }
+    function removeTasks(filterFn){
+      const data = state.data; 
+      data.tasks = data.tasks.filter(t => !filterFn(t));
+      state.data = data;
+    }
+
+    /********************* Auto-rollover logic ************************/
+    function autoRolloverPendingToToday(){
+      const data = state.data;
+      const last = parseISO(data.lastOpen || todayISO());
+      const now = new Date();
+      let moved = 0;
+      // If days passed, move any task with date < today and not completed -> today
+      data.tasks.forEach(t => {
+        if(!t.completed && parseISO(t.date) < new Date(now.getFullYear(), now.getMonth(), now.getDate())){
+          t.date = todayISO();
+          moved++;
+        }
+      });
+      data.lastOpen = todayISO();
+      state.data = data;
+      return moved;
+    }
+
+    function reschedulePendingOf(dateISO, toISO){
+      const data = state.data; let moved=0;
+      data.tasks.forEach(t => { if(t.date===dateISO && !t.completed){ t.date = toISO; moved++; } });
+      state.data = data; return moved;
+    }
+
+    /********************* Calendar rendering ************************/
+    const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    function renderDOW(){
+      const dow = document.getElementById('dow');
+      dow.innerHTML = '';
+      DOW.forEach(d => {
+        const el = document.createElement('div');
+        el.textContent = d; el.className = 'dow';
+        dow.appendChild(el);
+      });
+    }
+
+    function getMonthMatrix(date){
+      // Returns 6 weeks grid for current month (including leading/trailing blanks)
+      const first = new Date(date.getFullYear(), date.getMonth(), 1);
+      const startDay = first.getDay();
+      const daysInMonth = new Date(date.getFullYear(), date.getMonth()+1, 0).getDate();
+      const cells = [];
+      // Leading blanks
+      for(let i=0;i<startDay;i++) cells.push(null);
+      // Days
+      for(let d=1; d<=daysInMonth; d++) cells.push(new Date(date.getFullYear(), date.getMonth(), d));
+      // Trailing to fill 6*7=42
+      while(cells.length % 7 !== 0) cells.push(null);
+      while(cells.length < 42) cells.push(null);
+      return cells;
+    }
+
+    function renderCalendar(){
+      const grid = document.getElementById('calendar');
+      const monthLabel = document.getElementById('monthLabel');
+      grid.innerHTML = '';
+      const v = state.viewDate;
+      monthLabel.textContent = v.toLocaleString(undefined, { month:'long', year:'numeric' });
+      const cells = getMonthMatrix(v);
+      const data = state.data;
+      const today = todayISO();
+
+      cells.forEach(cell => {
+        const div = document.createElement('div');
+        div.className = 'day';
+        if(cell){
+          const iso = fmt(cell);
+          const num = document.createElement('div');
+          num.className = 'num'; num.textContent = cell.getDate();
+          div.appendChild(num);
+
+          // chips summary
+          const chips = document.createElement('div'); chips.className = 'chips';
+          const tasks = data.tasks.filter(t => t.date===iso);
+          const done = tasks.filter(t => t.completed).length;
+          const pend = tasks.length - done;
+          if(tasks.length){
+            const c1 = document.createElement('span'); c1.className = 'chip ok'; c1.textContent = `✓ ${done}`; chips.appendChild(c1);
+            const c2 = document.createElement('span'); c2.className = 'chip pending'; c2.textContent = `• ${pend}`; chips.appendChild(c2);
+          }
+          div.appendChild(chips);
+
+          if(iso===today) div.classList.add('today');
+          if(iso===state.selectedISO) div.classList.add('selected');
+
+          div.addEventListener('click', () => { state.selectedISO = iso; renderAll(); });
+        } else {
+          div.style.visibility = 'hidden';
+        }
+        grid.appendChild(div);
+      });
+    }
+
+    /********************* Task list rendering ************************/
+    function renderTasks(){
+      const list = document.getElementById('taskList');
+      const empty = document.getElementById('emptyState');
+      const title = document.getElementById('tasksTitle');
+      const meta = document.getElementById('tasksMeta');
+      const sel = state.selectedISO;
+      const tasks = state.data.tasks.filter(t => t.date===sel).sort((a,b)=> a.createdAt - b.createdAt);
+      const done = tasks.filter(t=>t.completed).length;
+
+      title.firstChild.textContent = `Tasks — ${new Date(sel).toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' })}`;
+      meta.textContent = tasks.length ? `(${done} done · ${tasks.length-done} pending)` : '';
+
+      list.innerHTML = '';
+      if(!tasks.length){ empty.style.display = 'block'; return; } else empty.style.display = 'none';
+
+      tasks.forEach(t => {
+        const row = document.createElement('div'); row.className = 'task' + (t.completed ? ' completed' : '');
+        const cb = document.createElement('input'); cb.type='checkbox'; cb.checked = t.completed; cb.title = 'Mark complete';
+        cb.addEventListener('change', ()=>{ t.completed = cb.checked; upsertTask(t); });
+        const block = document.createElement('div');
+        const title = document.createElement('div'); title.className='title'; title.textContent = t.title;
+        const meta = document.createElement('div'); meta.className='meta'; meta.textContent = t.notes || '';
+        block.appendChild(title); block.appendChild(meta);
+        const spacer = document.createElement('div'); spacer.className='spacer';
+
+        const deferBtn = document.createElement('button'); deferBtn.className='btn'; deferBtn.textContent='➜ Tomorrow';
+        deferBtn.title = 'Move this task to tomorrow';
+        deferBtn.addEventListener('click', ()=>{ t.date = tomorrowISO(t.date); upsertTask(t); });
+
+        const editBtn = document.createElement('button'); editBtn.className='btn'; editBtn.textContent='Edit';
+        editBtn.addEventListener('click', ()=>{
+          const titleNew = prompt('Update title', t.title);
+          if(titleNew!==null){ t.title = titleNew.trim() || t.title; }
+          const notesNew = prompt('Update notes', t.notes||'');
+          if(notesNew!==null){ t.notes = notesNew; }
+          upsertTask(t);
+        });
+
+        const delBtn = document.createElement('button'); delBtn.className='btn danger'; delBtn.textContent='Delete';
+        delBtn.addEventListener('click', ()=>{ removeTasks(x => x.id===t.id); });
+
+        row.appendChild(cb); row.appendChild(block); row.appendChild(spacer); row.appendChild(deferBtn); row.appendChild(editBtn); row.appendChild(delBtn);
+        list.appendChild(row);
+      });
+    }
+
+    /********************* Event wiring ************************/
+    function setDateInputTo(dateISO){ document.getElementById('date').value = dateISO; }
+
+    function addTaskFromForm(){
+      const title = document.getElementById('title').value.trim();
+      const notes = document.getElementById('notes').value.trim();
+      const date = document.getElementById('date').value || todayISO();
+      if(!title){ alert('Please enter a task title.'); return; }
+      const task = { id: crypto.randomUUID(), title, notes, date, completed:false, createdAt: Date.now() };
+      upsertTask(task);
+      // UX: focus back and clear only title
+      document.getElementById('title').value='';
+      document.getElementById('notes').value='';
+      state.selectedISO = date; // jump to date where task was added
+      renderAll();
+    }
+
+    function deleteCompleted(){ removeTasks(t => t.completed); }
+
+    function renderAll(){
+      document.getElementById('headerDate').textContent = new Date().toLocaleString(undefined, { weekday:'long', month:'long', day:'numeric' });
+      renderDOW();
+      renderCalendar();
+      renderTasks();
+    }
+
+    /********************* Init ************************/
+    function init(){
+      // Pre-fill date input
+      setDateInputTo(todayISO());
+      // Auto-rollover on load
+      const moved = autoRolloverPendingToToday();
+      renderAll();
+
+      // Controls
+      document.getElementById('addBtn').addEventListener('click', addTaskFromForm);
+      document.getElementById('clearFormBtn').addEventListener('click', ()=>{ document.getElementById('title').value=''; document.getElementById('notes').value=''; setDateInputTo(todayISO()); });
+      document.getElementById('todayBtn').addEventListener('click', ()=>{ setDateInputTo(todayISO()); });
+      document.getElementById('tomorrowBtn').addEventListener('click', ()=>{ setDateInputTo(tomorrowISO()); });
+      document.getElementById('deleteCompletedBtn').addEventListener('click', deleteCompleted);
+      document.getElementById('rolloverBtn').addEventListener('click', ()=>{ const n = autoRolloverPendingToToday(); if(n) alert(`Moved ${n} unfinished task(s) to today.`); renderAll(); });
+      document.getElementById('reschedSelectedBtn').addEventListener('click', ()=>{ const moved = reschedulePendingOf(state.selectedISO, tomorrowISO(state.selectedISO)); if(moved) alert(`Rescheduled ${moved} pending task(s) to tomorrow.`); renderAll(); });
+
+      // Calendar nav
+      document.getElementById('prevMonth').addEventListener('click', ()=>{ state.viewDate.setMonth(state.viewDate.getMonth()-1); renderAll(); });
+      document.getElementById('nextMonth').addEventListener('click', ()=>{ state.viewDate.setMonth(state.viewDate.getMonth()+1); renderAll(); });
+      document.getElementById('thisMonth').addEventListener('click', ()=>{ state.viewDate = new Date(); renderAll(); });
+
+      // Keyboard: submit on Enter in title
+      document.getElementById('title').addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ addTaskFromForm(); } });
+    }
+
+    init();
+  </script>
 </body>
 </html>
