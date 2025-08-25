@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Study Calendar & To-Do App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Study Planner Calendar</h1>
+    </header>
+    <main>
+      <section class="calendar-section">
+        <div id="calendar"></div>
+      </section>
+      <section class="todo-section">
+        <h2 id="todo-date"></h2>
+        <form id="todo-form">
+          <input type="text" id="todo-input" placeholder="Add a new task..." required>
+          <button type="submit">Add</button>
+        </form>
+        <ul id="todo-list"></ul>
+        <div id="pending-tasks"></div>
+        <div id="move-task-modal" class="modal">
+          <div class="modal-content">
+            <span class="close" id="close-modal">&times;</span>
+            <h3>Move Task to Another Day</h3>
+            <label for="move-date">Select Date:</label>
+            <input type="date" id="move-date">
+            <button id="move-task-btn">Move</button>
+          </div>
+        </div>
+      </section>
+    </main>
+    <footer>
+      <p>Made with &hearts; for study planning</p>
+    </footer>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>
